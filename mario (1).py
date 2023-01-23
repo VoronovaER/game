@@ -19,21 +19,6 @@ def load_image(name, colorkey=None):
     return image
 
 
-pygame.init()
-clock = pygame.time.Clock()
-pygame.display.set_caption("Перемещение героя")
-screen_size = WIDTH, HEIGHT = (500, 500)
-screen = pygame.display.set_mode(screen_size)
-FPS = 50
-tile_images = {'wall': load_image('box.png'),
-               'empty': load_image('grass.png'),
-               'rock': load_image('gray_rock.png'),
-               'treasure': load_image('treasure.png')}
-player_image = load_image('mar.png')
-
-tile_width = tile_height = 50
-
-
 class Tile(pygame.sprite.Sprite):
     def __init__(self, tile_type, pos_x, pos_y):
         super().__init__(tiles_group, all_sprites)
@@ -52,7 +37,7 @@ class Player(pygame.sprite.Sprite):
         self.pos = (pos_x, pos_y)
         self.money = 0
 
-    def move(self, x, y):
+    def move(self, x, y, level_map):
         camera.dx -= tile_width * (x - self.pos[0])
         camera.dy -= tile_height * (y - self.pos[1])
         self.pos = (x, y)
@@ -61,7 +46,7 @@ class Player(pygame.sprite.Sprite):
         if level_map[y][x] == '*':
             print('Ой! Вы умерли.')
             print(f'У вас {self.money} денег.')
-            terminate()
+            between_levels()
         if level_map[y][x] == '$':
             print('Ура! Вы нашли монетку.')
             self.money += 1
@@ -82,13 +67,6 @@ class Camera:
         self.dy = 0
 
 
-player = None
-
-all_sprites = pygame.sprite.Group()
-tiles_group = pygame.sprite.Group()
-player_group = pygame.sprite.Group()
-
-
 def generate_level(level):
     new_player, x, y = None, None, None
     for y in range(len(level)):
@@ -107,23 +85,20 @@ def generate_level(level):
     return new_player, x, y
 
 
-'''def between_levels():
-    intro_text = "Ой! вы умерли!"
-    screen.fill(pygame.Color("black"))
-    font = pygame.font.Font(None, 30)
-    text_coord = 50
-    string_rendered = font.render(intro_text, 1, pygame.Color('white'))
-    intro_rect = string_rendered.get_rect()
-
+def between_levels():
+    print('Вы умерли. Хотите продолжиь игру?')
+    a = input()
     while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                terminate()
-            elif event.type == pygame.KEYDOWN or \
-                    event.type == pygame.MOUSEBUTTONDOWN:
-                return
-        pygame.display.flip()
-        clock.tick(FPS)'''
+        if a.lower() == 'да':
+            main()
+            break
+        elif a.lower() == 'нет':
+            print('Жаль)')
+            terminate()
+            break
+        else:
+            print('Неверный ввод. Введите только да или нет')
+            a = input()
 
 
 def terminate():
@@ -170,57 +145,85 @@ def load_level(filename):
     return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
 
-def move(hero, movement):
+def move(hero, movement, level_map, max_x, max_y):
     x, y = hero.pos
     if movement == "up" or movement == "w":
         if y > 0 and level_map[y - 1][x] != '#':
-            hero.move(x, y - 1)
+            hero.move(x, y - 1, level_map)
     elif movement == "down" or movement == "s":
         if y < max_y - 1 and level_map[y + 1][x] != '#':
-            hero.move(x, y + 1)
+            hero.move(x, y + 1, level_map)
     elif movement == "left":
         if x > 0 and level_map[y][x - 1] != '#':
-            hero.move(x - 1, y)
+            hero.move(x - 1, y, level_map)
     if movement == "right":
         if x < max_x and level_map[y][x + 1] != '#':
-            hero.move(x + 1, y)
+            hero.move(x + 1, y, level_map)
 
 
-start_screen()
+pygame.init()
+clock = pygame.time.Clock()
+pygame.display.set_caption("Перемещение героя")
+screen_size = WIDTH, HEIGHT = (500, 500)
+screen = pygame.display.set_mode(screen_size)
+FPS = 50
+tile_images = {'wall': load_image('box.png'),
+                'empty': load_image('grass.png'),
+                'rock': load_image('gray_rock.png'),
+                'treasure': load_image('treasure.png')}
+player_image = load_image('mar.png')
+
+tile_width = tile_height = 50
+
+player = None
+
+all_sprites = pygame.sprite.Group()
+tiles_group = pygame.sprite.Group()
+player_group = pygame.sprite.Group()
 camera = Camera()
-print('Выберите уровень. ВВедите только 1, 2 или 3')
-ans = input()
-try:
-    if int(ans) == 1:
-        levelname = 'map.map'
-    elif int(ans) == 2:
-        levelname = 'level2'
-    elif int(ans) == 3:
-        levelname = 'level3'
-    else:
-        raise ValueError
-except ValueError:
-    terminate()
-level_map = load_level(levelname)
-hero, max_x, max_y = generate_level(level_map)
-camera.update(hero)
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP or event.key == pygame.K_w:
-                move(hero, "up")
-            elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
-                move(hero, "down")
-            elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
-                move(hero, "left")
-            elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
-                move(hero, "right")
-    screen.fill(pygame.Color("black"))
-    tiles_group.draw(screen)
-    player_group.draw(screen)
-    clock.tick(FPS)
-    pygame.display.flip()
-pygame.quit()
+
+
+def main():
+    start_screen()
+    print('Выберите уровень. ВВедите только 1, 2 или 3')
+    ans = input()
+    try:
+        if int(ans) == 1:
+            levelname = 'map.map'
+        elif int(ans) == 2:
+            levelname = 'level2'
+        elif int(ans) == 3:
+            levelname = 'level3'
+        else:
+            raise ValueError
+    except ValueError:
+        terminate()
+
+    level_map = load_level(levelname)
+    hero, max_x, max_y = generate_level(level_map)
+    camera.update(hero)
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP or event.key == pygame.K_w:
+                    move(hero, "up", level_map, max_x, max_y)
+                elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
+                    move(hero, "down", level_map, max_x, max_y)
+                elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
+                    move(hero, "left", level_map, max_x, max_y)
+                elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
+                    move(hero, "right", level_map, max_x, max_y)
+        screen.fill(pygame.Color("black"))
+        tiles_group.draw(screen)
+        player_group.draw(screen)
+        clock.tick(FPS)
+        pygame.display.flip()
+    pygame.quit()
+
+
+if __name__ == '__main__':
+    main()
+main()
