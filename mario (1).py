@@ -86,7 +86,7 @@ def generate_level(level):
 
 
 def between_levels():
-    print('Вы умерли. Хотите продолжиь игру?')
+    print('Хотите продолжить игру?')
     a = input()
     while True:
         if a.lower() == 'да':
@@ -181,18 +181,17 @@ all_sprites = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 camera = Camera()
+level = 1
 
 
 def main():
     start_screen()
-    print('Выберите уровень. ВВедите только 1, 2 или 3')
-    ans = input()
     try:
-        if int(ans) == 1:
+        if int(level) == 1:
             levelname = 'map.map'
-        elif int(ans) == 2:
+        elif int(level) == 2:
             levelname = 'level2'
-        elif int(ans) == 3:
+        elif int(level) == 3:
             levelname = 'level3'
         else:
             raise ValueError
