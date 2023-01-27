@@ -38,9 +38,10 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(
             tile_width * pos_x + 15, tile_height * pos_y + 5)
         self.pos = (pos_x, pos_y)
-        self.money = 0
+
 
     def move(self, x, y, level_map):
+        global money
         global level
         camera.dx -= tile_width * (x - self.pos[0])
         camera.dy -= tile_height * (y - self.pos[1])
@@ -49,16 +50,17 @@ class Player(pygame.sprite.Sprite):
             camera.apply(sprite)
         if level_map[y][x] == '*':
             print('Ой! Вы умерли.')
-            print(f'У вас {self.money} денег.')
+            print(f'У вас {money} денег.')
+            money = 0
             between_levels()
         if level_map[y][x] == 'e':
             print('Ура! Вы прошли уровень!')
-            print(f'У вас {self.money} денег.')
+            print(f'У вас {money} денег.')
             level += 1
-            between_levels(self.money)
+            between_levels(money)
         if level_map[y][x] == '$':
             print('Ура! Вы нашли монетку.')
-            self.money += 1
+            money += 1
             level_map[y] = level_map[y][:x] + '.' + level_map[y][x + 1:]
 
 
@@ -119,16 +121,15 @@ def terminate():
 
 
 def start_screen():
-    intro_text = ["Перемещение героя", "",
-                  "Герой двигается",
-                  "Карта двигается"]
+    intro_text = ["The Mase. Mario version", "",
+                  f"Level {level}"]
 
     fon = pygame.transform.scale(load_image('fon.jpg'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
     font = pygame.font.Font(None, 30)
     text_coord = 50
     for line in intro_text:
-        string_rendered = font.render(line, 1, pygame.Color('white'))
+        string_rendered = font.render(line, 1, pygame.Color('red'))
         intro_rect = string_rendered.get_rect()
         text_coord += 10
         intro_rect.top = text_coord
@@ -179,7 +180,7 @@ pygame.display.set_caption("Перемещение героя")
 screen_size = WIDTH, HEIGHT = (500, 500)
 screen = pygame.display.set_mode(screen_size)
 FPS = 50
-
+money = 0
 tile_images = {'wall': load_image('box.png'),
                'empty': load_image('grass.png'),
                'rock': load_image('gray_rock.png'),
