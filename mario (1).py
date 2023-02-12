@@ -83,10 +83,10 @@ def generate_level(level):
     return new_player, x, y
 
 
-def end(screen):
+def loose(screen):
     screen.fill(pygame.Color("black"))
     intro_text = ["You died. Wanna try again?"]
-    font = pygame.font.Font(None, 30)
+    font = pygame.font.Font(None, 50)
     text_coord = 80
     for line in intro_text:
         string_rendered = font.render(line, False, pygame.Color('white'))
@@ -96,32 +96,57 @@ def end(screen):
         intro_rect.x = 10
         text_coord += intro_rect.height
         screen.blit(string_rendered, intro_rect)
-        pygame.draw.rect(screen, pygame.Color('white'), (70, 250, 100, 75), 8)
-        pygame.draw.rect(screen, pygame.Color('white'), (210, 250, 100, 75), 8)
+    between_levels(font, screen)
+
+
+def win(screen):
+    global money
+    screen.fill(pygame.Color("red"))
+    intro_text = ["You won! Wanna try again?",
+                  f"You've got {money} money"]
+    font = pygame.font.Font(None, 50)
+    text_coord = 80
+    for line in intro_text:
+        string_rendered = font.render(line, False, pygame.Color('black'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 10
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+    between_levels(font, screen)
+
+
+def between_levels(font, screen):
+    global level, money
+    string_rendered = font.render('YES', False, pygame.Color('white'))
+    intro_rect = string_rendered.get_rect()
+    intro_rect.top = 260
+    intro_rect.x = 80
+    screen.blit(string_rendered, intro_rect)
+
+    string_rendered = font.render('NO', False, pygame.Color('white'))
+    intro_rect = string_rendered.get_rect()
+    intro_rect.top = 260
+    intro_rect.x = 220
+    screen.blit(string_rendered, intro_rect)
+    pygame.draw.rect(screen, pygame.Color('white'), (70, 250, 100, 75), 8)
+    pygame.draw.rect(screen, pygame.Color('white'), (210, 250, 100, 75), 8)
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT or event.type == pygame.KEYDOWN:
                 terminate()
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                terminate()
-                return
+                if get_click(event.pos):
+                    level = 1
+                    money = 0
+                    main()
+                    break
+                elif get_click(event.pos) == 0:
+                    terminate()
+                else:
+                    pass
         pygame.display.flip()
-
-
-def between_levels():
-    print('Хотите продолжить игру?')
-    a = input()
-    while True:
-        if a.lower() == 'да':
-            main()
-            break
-        elif a.lower() == 'нет':
-            print('Жаль)')
-            terminate()
-            break
-        else:
-            print('Неверный ввод. Введите только да или нет')
-            a = input()
 
 
 def terminate():
@@ -188,13 +213,23 @@ def check(level_map, screen, x, y):
     global money, level
     if level_map[y][x] == '*':
         money = 0
-        end(screen)
+        loose(screen)
     if level_map[y][x] == 'e':
         level += 1
         main()
     if level_map[y][x] == '$':
         money += 1
         level_map[y] = level_map[y][:x] + '.' + level_map[y][x + 1:]
+
+
+def get_click(mouse_pos):
+    cell_x = mouse_pos[0]
+    cell_y = mouse_pos[1]
+    if 70 <= cell_x <= 170 and 75 <= cell_y <= 325:
+        return 1
+    elif 210 <= cell_x <= 310 and 250 <= cell_y <= 325:
+        return 0
+    return None
 
 
 FPS = 50
@@ -224,7 +259,7 @@ def main():
     global level
     if level > 3:
         level = 1
-        main()
+        win(screen)
     start_screen(screen, clock)
     try:
         if int(level) == 1:
