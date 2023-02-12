@@ -39,29 +39,13 @@ class Player(pygame.sprite.Sprite):
             tile_width * pos_x + 15, tile_height * pos_y + 5)
         self.pos = (pos_x, pos_y)
 
-
-    def move(self, x, y, level_map):
-        global money
-        global level
+    def move(self, x, y, level_map, screen):
         camera.dx -= tile_width * (x - self.pos[0])
         camera.dy -= tile_height * (y - self.pos[1])
         self.pos = (x, y)
         for sprite in tiles_group:
             camera.apply(sprite)
-        if level_map[y][x] == '*':
-            print('Ой! Вы умерли.')
-            print(f'У вас {money} денег.')
-            money = 0
-            between_levels()
-        if level_map[y][x] == 'e':
-            print('Ура! Вы прошли уровень!')
-            print(f'У вас {money} денег.')
-            level += 1
-            between_levels(money)
-        if level_map[y][x] == '$':
-            print('Ура! Вы нашли монетку.')
-            money += 1
-            level_map[y] = level_map[y][:x] + '.' + level_map[y][x + 1:]
+        check(level_map, screen, x, y)
 
 
 class Camera:
@@ -73,7 +57,7 @@ class Camera:
         obj.rect.x = obj.abs_pos[0] + self.dx
         obj.rect.y = obj.abs_pos[1] + self.dy
 
-    def update(self, target):
+    def update(self):
         self.dx = 0
         self.dy = 0
 
@@ -99,20 +83,70 @@ def generate_level(level):
     return new_player, x, y
 
 
-def between_levels(money=0):
-    print('Хотите продолжить игру?')
-    a = input()
+def loose(screen):
+    screen.fill(pygame.Color("black"))
+    intro_text = ["You died. Wanna try again?"]
+    font = pygame.font.Font(None, 50)
+    text_coord = 80
+    for line in intro_text:
+        string_rendered = font.render(line, False, pygame.Color('white'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 10
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+    between_levels(font, screen)
+
+
+def win(screen):
+    global money
+    screen.fill(pygame.Color("red"))
+    intro_text = ["You won! Wanna try again?",
+                  f"You've got {money} money"]
+    font = pygame.font.Font(None, 50)
+    text_coord = 80
+    for line in intro_text:
+        string_rendered = font.render(line, False, pygame.Color('black'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 10
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+    between_levels(font, screen)
+
+
+def between_levels(font, screen):
+    global level, money
+    string_rendered = font.render('YES', False, pygame.Color('white'))
+    intro_rect = string_rendered.get_rect()
+    intro_rect.top = 260
+    intro_rect.x = 80
+    screen.blit(string_rendered, intro_rect)
+
+    string_rendered = font.render('NO', False, pygame.Color('white'))
+    intro_rect = string_rendered.get_rect()
+    intro_rect.top = 260
+    intro_rect.x = 220
+    screen.blit(string_rendered, intro_rect)
+    pygame.draw.rect(screen, pygame.Color('white'), (70, 250, 100, 75), 8)
+    pygame.draw.rect(screen, pygame.Color('white'), (210, 250, 100, 75), 8)
     while True:
-        if a.lower() == 'да':
-            main()
-            break
-        elif a.lower() == 'нет':
-            print('Жаль)')
-            terminate()
-            break
-        else:
-            print('Неверный ввод. Введите только да или нет')
-            a = input()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT or event.type == pygame.KEYDOWN:
+                terminate()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if get_click(event.pos):
+                    level = 1
+                    money = 0
+                    main()
+                    break
+                elif get_click(event.pos) == 0:
+                    terminate()
+                else:
+                    pass
+        pygame.display.flip()
 
 
 def terminate():
@@ -120,16 +154,17 @@ def terminate():
     sys.exit()
 
 
-def start_screen():
+def start_screen(screen, clock):
     intro_text = ["The Mase. Mario version", "",
-                  f"Level {level}"]
+                  f"Level {level}",
+                  f"{money} money"]
 
     fon = pygame.transform.scale(load_image('fon.jpg'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
     font = pygame.font.Font(None, 30)
     text_coord = 50
     for line in intro_text:
-        string_rendered = font.render(line, 1, pygame.Color('red'))
+        string_rendered = font.render(line, False, pygame.Color('red'))
         intro_rect = string_rendered.get_rect()
         text_coord += 10
         intro_rect.top = text_coord
@@ -158,27 +193,45 @@ def load_level(filename):
     return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
 
-def move(hero, movement, level_map, max_x, max_y):
+def move(hero, movement, level_map, max_x, max_y, screen):
     x, y = hero.pos
     if movement == "up" or movement == "w":
         if y > 0 and level_map[y - 1][x] != '#':
-            hero.move(x, y - 1, level_map)
+            hero.move(x, y - 1, level_map, screen)
     elif movement == "down" or movement == "s":
         if y < max_y and level_map[y + 1][x] != '#':
-            hero.move(x, y + 1, level_map)
+            hero.move(x, y + 1, level_map, screen)
     elif movement == "left":
         if x > 0 and level_map[y][x - 1] != '#':
-            hero.move(x - 1, y, level_map)
+            hero.move(x - 1, y, level_map, screen)
     if movement == "right":
         if x < max_x and level_map[y][x + 1] != '#':
-            hero.move(x + 1, y, level_map)
+            hero.move(x + 1, y, level_map, screen)
 
 
-pygame.init()
-clock = pygame.time.Clock()
-pygame.display.set_caption("Перемещение героя")
-screen_size = WIDTH, HEIGHT = (500, 500)
-screen = pygame.display.set_mode(screen_size)
+def check(level_map, screen, x, y):
+    global money, level
+    if level_map[y][x] == '*':
+        money = 0
+        loose(screen)
+    if level_map[y][x] == 'e':
+        level += 1
+        main()
+    if level_map[y][x] == '$':
+        money += 1
+        level_map[y] = level_map[y][:x] + '.' + level_map[y][x + 1:]
+
+
+def get_click(mouse_pos):
+    cell_x = mouse_pos[0]
+    cell_y = mouse_pos[1]
+    if 70 <= cell_x <= 170 and 75 <= cell_y <= 325:
+        return 1
+    elif 210 <= cell_x <= 310 and 250 <= cell_y <= 325:
+        return 0
+    return None
+
+
 FPS = 50
 money = 0
 tile_images = {'wall': load_image('box.png'),
@@ -188,25 +241,26 @@ tile_images = {'wall': load_image('box.png'),
                'door': load_image('door.png')}
 
 player_image = load_image('mar.png')
-
 tile_width = tile_height = 50
-
-player = None
-
 all_sprites = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
-camera = Camera()
 level = 1
+camera = Camera()
+screen_size = WIDTH, HEIGHT = (500, 500)
 
 
 def main():
+    pygame.init()
+    clock = pygame.time.Clock()
+    pygame.display.set_caption("Перемещение героя")
+    screen = pygame.display.set_mode(screen_size)
+    player = None
     global level
     if level > 3:
-        print("Вы прошли все уровни!")
         level = 1
-        between_levels()
-    start_screen()
+        win(screen)
+    start_screen(screen, clock)
     try:
         if int(level) == 1:
             levelname = 'map.map'
@@ -221,7 +275,7 @@ def main():
 
     level_map = load_level(levelname)
     hero, max_x, max_y = generate_level(level_map)
-    camera.update(hero)
+    camera.update()
     running = True
     while running:
         for event in pygame.event.get():
@@ -230,13 +284,13 @@ def main():
                 terminate()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP or event.key == pygame.K_w:
-                    move(hero, "up", level_map, max_x, max_y)
+                    move(hero, "up", level_map, max_x, max_y, screen)
                 elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
-                    move(hero, "down", level_map, max_x, max_y)
+                    move(hero, "down", level_map, max_x, max_y, screen)
                 elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
-                    move(hero, "left", level_map, max_x, max_y)
+                    move(hero, "left", level_map, max_x, max_y, screen)
                 elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
-                    move(hero, "right", level_map, max_x, max_y)
+                    move(hero, "right", level_map, max_x, max_y, screen)
         screen.fill(pygame.Color("black"))
         tiles_group.draw(screen)
         player_group.draw(screen)
@@ -247,4 +301,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-main()
